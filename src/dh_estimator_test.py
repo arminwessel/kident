@@ -12,9 +12,9 @@ a_nom=np.array([0,0,0,0,0,0,0])
 alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
 
 # theta_real=theta_nom + np.array([0,0,0,0,0,0,0])
-d_real=d_nom + np.array([0,0,0,0,0,0,0.1])
+d_real=d_nom + np.array([0,0,0,0,0,0,0.01])
 a_real=a_nom + np.array([0,0,0,0,0,0,0])
-alpha_real=alpha_nom + np.array([0,0.0002,0,0,0,0,0])
+alpha_real=alpha_nom + np.array([0,0,0,0,0,0,0]) #0.0002
 
 end=800
 estimator=DHestimator()
@@ -22,11 +22,13 @@ printvar=np.zeros((1,end))
 param_errors_list=np.zeros((28,end))
 jacobian=np.zeros((0,28))
 pos_error=np.zeros((0,1))
+traj=np.zeros((7,end))
 
 for k in range(0,end):
     theta_nom=theta_nom + np.random.default_rng().normal(0, 0.01, (7,))
     # theta_nom=theta_nom + np.ones(7)*np.pi/(end*2)
-    theta_real=theta_nom + np.array([0,0,np.pi/180*2,0,0,0,0])
+    theta_real=theta_nom + np.array([0,0,0,0,0,0,0])
+    traj[:,k] = np.transpose(theta_real)
     jacobian=np.concatenate((jacobian,estimator.get_parameter_jacobian(theta_nom, d_nom, a_nom, alpha_nom)[0:3,:]),axis=0)
 
     nominal_pos=estimator.get_T__i0(7,theta_nom, d_nom, a_nom, alpha_nom)[0:3,3].reshape((3,1))
@@ -88,5 +90,18 @@ axis[1,1].plot(X,param_errors_list[26,:].flatten(), color='tab:olive',  label='5
 axis[1,1].plot(X,param_errors_list[27,:].flatten(), color='tab:cyan',   label='6')
 axis[1,1].set_title("d alpha")
 axis[1,1].legend()
+figure.show()
 
+fig, ax = plt.subplots()
+ax.plot(X,traj[0,:].flatten(), color='tab:blue',   label='0')
+ax.plot(X,traj[1,:].flatten(), color='tab:orange', label='1')
+ax.plot(X,traj[2,:].flatten(), color='tab:green',  label='2')
+ax.plot(X,traj[3,:].flatten(), color='tab:red',    label='3')
+ax.plot(X,traj[4,:].flatten(), color='tab:purple', label='4')
+ax.plot(X,traj[5,:].flatten(), color='tab:olive',  label='5')
+ax.plot(X,traj[6,:].flatten(), color='tab:cyan',   label='6')
+ax.set_title("theta trajectories")
+ax.legend()
+fig.show()
 plt.show()
+print('fin')
