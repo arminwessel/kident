@@ -115,6 +115,7 @@ class RLS():
         assert np.shape(S)[0]==np.shape(Y)[0], "observation dimensions don't match"
 
 
+
         for obs in zip(S,Y): # iterate over rows, each iteration is an independent measurement
             (s_T, y)=obs
             s_T = np.reshape(s_T,(1,-1))
