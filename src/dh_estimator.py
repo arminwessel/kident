@@ -83,64 +83,80 @@ class DHestimator():
         J[3:6,:]=np.concatenate((W2, np.zeros((3,7)), np.zeros((3,7)), W3), axis=1)
         return J
 
-    
-class RLS: ## https://github.com/craig-m-k/Recursive-least-squares/blob/master/RLS.ipynb
-    def __init__(self, num_vars, lam, delta):
-        '''
-        num_vars: number of variables including constant
-        lam: forgetting factor, usually very close to 1.
-        '''
-        self.num_vars = num_vars
-        
-        # delta controls the initial state.
-        self.A = delta*np.matrix(np.identity(self.num_vars))
-        self.w = np.matrix(np.zeros(self.num_vars))
-        self.w = self.w.reshape(self.w.shape[1],1)
-        
-        # Variables needed for add_obs
-        self.lam_inv = lam**(-1)
-        self.sqrt_lam_inv = math.sqrt(self.lam_inv)
-        
-        # A priori error
-        self.a_priori_error = 0
-        
-        # Count of number of observations added
-        self.num_obs = 0
 
-    def add_obs(self, x, t):
+class RLS(): 
+    def __init__(self, num_params, q, alpha=1e3)->None:
+        """
+        num_params: number of parameters to be estimated
+        q: forgetting factor, usually very close to 1.
+        alpha: initial value on idagonal of P
+        """
+        assert q <= 1 and q > 0.9, "q usually needs to be from ]0.9, 1]"
+        self.q = q
+
+        self.num_params = num_params
+        self.P = alpha*np.eye(num_params) #initial value of matrix P
+        self.phat = np.zeros((num_params,1)) #initial guess for parameters, col vector
+        self.num_obs=0
+        
+
+    def add_obs(self, S, Y)->None:
+        """
+        Add an observation
+        S_T: array of data vectors [[s1],[s2],[s3]...]
+        Y: measured outputs vector [[y1],[y2],[y3]...]
+        """
+        if S.ndim==1: # 1D arrays are converted to a row in a 2D array
+            S = np.reshape(S,(1,-1))
+        if Y.ndim==1:
+            Y = np.reshape(Y,(-1,1))
+
+        assert np.shape(S)[1]==self.num_params, "number of parameters has to agree with measurement dim"
+        assert np.shape(S)[0]==np.shape(Y)[0], "observation dimensions don't match"
+
+
+        for obs in zip(S,Y): # iterate over rows, each iteration is an independent measurement
+            (s_T, y)=obs
+            s_T = np.reshape(s_T,(1,-1))
+            s=np.transpose(s_T)
+            _num=self.P@s
+            _den=(self.q + s_T@self.P@s)
+            self.k = _num/_den
+
+            self.P = (self.P - self.k@s_T@self.P)*(1/self.q)
+
+            self.phat = self.phat + self.k*(y - s_T@self.phat)
+            self.num_obs = self.num_obs+1
+
+
+    
+    def get_estimate(self):
+        return self.phat
+
+    def get_num_obs(self):
+        return self.num_obs
+
+class Kalman: 
+    def __init__(self):
         '''
-        Add the observation x with label t.
-        x is a column vector as a numpy matrix
-        t is a real scalar
+        TODO
+        '''
+        pass
+
+    def add_obs(self):
+        '''
+        TODO
         '''            
-        z = self.lam_inv*self.A*x
-        alpha = float((1 + x.T*z)**(-1))
-        self.a_priori_error = float(t - self.w.T*x)
-        self.w = self.w + (t-alpha*float(x.T*(self.w+t*z)))*z
-        self.A -= alpha*z*z.T
-        self.num_obs += 1
-        
-    def fit(self, X, y):
+        pass
+    def get_estimate(self):
         '''
-        Fit a model to X,y.
-        X and y are numpy arrays.
-        Individual observations in X should have a prepended 1 for constant coefficient.
+        TODO
         '''
-        for i in range(len(X)):
-            x = np.transpose(np.matrix(X[i]))
-            self.add_obs(x,y[i])
+        pass
 
 
-    def get_error(self):
+    def get_num_obs(self):
         '''
-        Finds the a priori (instantaneous) error. 
-        Does not calculate the cumulative effect
-        of round-off errors.
+        TODO
         '''
-        return self.a_priori_error
-    
-    def predict(self, x):
-        '''
-        Predict the value of observation x. x should be a numpy matrix (col vector)
-        '''
-        return float(self.w.T*x)
+        pass
