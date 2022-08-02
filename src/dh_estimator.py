@@ -129,13 +129,13 @@ class RLS():
             self.phat = self.phat + self.k*(y - s_T@self.phat)
             self.num_obs = self.num_obs+1
 
-
-    
     def get_estimate(self):
         return self.phat
 
     def get_num_obs(self):
         return self.num_obs
+
+
 
 class Kalman: 
     def __init__(self):

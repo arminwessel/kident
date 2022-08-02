@@ -12,11 +12,11 @@ a_nom=np.array([0,0,0,0,0,0,0])
 alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
 
 # theta_real=theta_nom + np.array([0,0,0,0,0,0,0])
-d_real=d_nom + np.array([0,0,0,0,0,0,0.1])
-a_real=a_nom + np.array([0,0,0,0,0,0,0])
-alpha_real=alpha_nom + np.array([0,0,0,0,0,0,0]) #0.0002
+d_real=d_nom + np.array([0,0,0,0,0,0,0.01])
+a_real=a_nom + np.array([0,0,0,0,0,0,0.02])
+alpha_real=alpha_nom + np.array([0,0,0.002,0,0,0,0]) #0.0002
 
-end=800
+end=200
 estimator=DHestimator()
 printvar=np.zeros((1,end))
 param_errors_list=np.zeros((28,end))
@@ -24,29 +24,34 @@ jacobian=np.zeros((0,28))
 pos_error=np.zeros((0,1))
 traj=np.zeros((7,end))
 
-rls=RLS(28,0.95)
+rls=RLS(28,1)
 
 for k in range(0,end):
+    ######## trajectory:
     theta_nom=theta_nom + np.random.default_rng().normal(0, 0.01, (7,))
     # theta_nom=theta_nom + np.ones(7)*np.pi/(end*2)
     theta_real=theta_nom + np.array([0,0,0,0,0,0,0])
     traj[:,k] = np.transpose(theta_real)
-    jacobian=np.concatenate((jacobian,estimator.get_parameter_jacobian(theta_nom, d_nom, a_nom, alpha_nom)[0:3,:]),axis=0)
 
-    nominal_pos=estimator.get_T__i0(7,theta_nom, d_nom, a_nom, alpha_nom)[0:3,3].reshape((3,1))
-    real_pos=estimator.get_T__i0(7, theta_real, d_real, a_real, alpha_real)[0:3,3].reshape((3,1))
-    pos_error=np.concatenate((pos_error,real_pos-nominal_pos),axis=0)
+   
+    jacobian = estimator.get_parameter_jacobian(theta_nom, d_nom, a_nom, alpha_nom)
+    T_nom = estimator.get_T__i0(7,theta_nom, d_nom, a_nom, alpha_nom)
+    T_real = estimator.get_T__i0(7, theta_real, d_real, a_real, alpha_real)
+    nominal_pos = T_nom[0:3,3].reshape((3,1))
+    real_pos = T_real[0:3,3].reshape((3,1))
 
+    nom_rot=T_nom[0:3,0:3]
+    real_rot=T_real[0:3,0:3]
+    delta_x=0.5*(real_rot[2,1]-real_rot[1,2]-nom_rot[2,1]+nom_rot[1,2])
+    delta_y=0.5*(real_rot[0,2]-real_rot[2,0]-nom_rot[0,2]+nom_rot[2,0])
+    delta_z=0.5*(real_rot[1,0]-real_rot[0,1]-nom_rot[1,0]+nom_rot[0,1])
 
+    current_error=np.concatenate((real_pos-nominal_pos,np.reshape(np.array([delta_x,delta_y,delta_z]),(3,1))),axis=0)
+
+  
     # use RLS
-    rls.add_obs(S=jacobian, Y=pos_error)
+    rls.add_obs(S=jacobian, Y=current_error)
     param_errors_list[:,k] = rls.get_estimate().flatten()
-    
-
-    # theta_nom=theta_nom + x[0:7]
-    # d_nom=d_nom+x[7:14]
-    # a_nom=a_nom+x[14:21]
-    # alpha_nom=alpha_nom+x[21:28]
 
 
 X = range(0,end)
