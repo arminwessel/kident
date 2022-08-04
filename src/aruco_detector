@@ -49,7 +49,8 @@ class ArucoDetector():
             self.camera_matrix, 
             self.camera_distortion)
         
-        return ids, rvecs, tvecs
+        #return ids, rvecs, tvecs
+        return  [{"id":m[0], "rvec":m[1], "tvec":m[2], "tstamp":"TODO timestamp"} for m in zip(ids, rvecs, tvecs)]
         
 
     
@@ -86,67 +87,6 @@ class ArucoDetector():
         self._pub2.publish(pose)
 
 
-class PoseQueue():
-    """
-    Custom overflowing queue. Once max number of elements is reached the oldest element is dropped
-    """
- 
-    # Initialize queue
-    def __init__(self, max_elements):
-        self.q = [None] * max_elements      # list to store queue elements
-        self.capacity = max_elements        # maximum capacity of the queue
-        self.front = 0                      # front points to the front element in the queue
-        self.rear = -1                      # rear points to the last element in the queue
-        self.count = 0                      # current size of the queue
- 
-    # Function to dequeue the front element
-    def deq(self):
-        x = self.q[self.front]
-        # print('Removing element…', x)
-        self.front = (self.front + 1) % self.capacity
-        self.count = self.count - 1
-        # check for queue underflow
-        if self.isEmpty():
-            # print('Queue Underflow!! Terminating process.')
-            self.front=0
-            self.rear=-1
-        return x
- 
-    # Function to add an element to the queue
-    def enq(self, value):
-        # check for queue overflow
-        if self.isFull():
-            self.deq()                      # throw out element
-        # print('Inserting element…', value)
-        self.rear = (self.rear + 1) % self.capacity
-        self.q[self.rear] = value
-        self.count = self.count + 1
- 
-    # Function to return the front element of the queue
-    def peek(self):
-        if self.isEmpty():
-            print("Can' peek empty queue")
-            exit(-1)
-        return self.q[self.front]
- 
-    # Function to return the size of the queue
-    def size(self):
-        return self.count
- 
-    # Function to check if the queue is empty or not
-    def isEmpty(self):
-        return self.size() == 0
- 
-    # Function to check if the queue is full or not
-    def isFull(self):
-        return self.size() == self.capacity
-
-    # Function to return all elements in queue as sorted list
-    def asArray(self):
-        if (self.isFull()):
-            return self.q[self.front:self.capacity]+self.q[0:self.front]
-        else:
-            return self.q[self.front:self.rear+1]
  
 
 # Main function.
