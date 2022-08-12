@@ -1,0 +1,10 @@
+Die Frage ist wie man die gemessenen Daten ablegt, und wie man aus den gesammelten Daten dann auf Posenänderungen schließt.
+
+Mathemathik ist so weit klar:
+    Die Differenz von zwei posen kann berechnet werden indem man beide Messungen (markerpose im KameraKOS) als Matrix invertiert, dann die Differenz der zugehürigen Rodrigues-Darstellung bildet (tvec1-tvec2, rotvec1-rotvec2), und diese Differenz in Matrixdarstellung noch einmal invertiert
+    Frage wäre hier: geht es auch einfacher?
+
+Offen ist eher die Methode mit der man an die "Data Fusion" herangeht. Nehme ich einfach den mean() von den berechnetern Posendifferenzen?
+
+Das Ganze sollte man vielleicht mal als Ablaufdiagramm zeichnen (Diagramm für das Programm), weil das wird so zu schwer zum coden
+

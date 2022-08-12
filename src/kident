@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""
+Node for identification of the Kinematic Model of a 7 DoF Robot
+"""
+
+from dh_estimator import DHestimator
+import rospy
+# import numpy as np
+# from sensor_msgs.msg import Image
+# from geometry_msgs.msg import Point, Quaternion, Pose
+# from kident.msg import Point2DArray
+# import cv2
+# import utils
+# from scipy.spatial.transform import Rotation
+# import ros_numpy
+from sensor_input import SensorInput
+from pose_observer import PoseObserver
+
+
+# Main function.
+if __name__ == "__main__":
+    rospy.init_node('kident')   # init ROS node named kident
+    rospy.loginfo('#Node kident running#')
+
+    while not rospy.get_rostime():      # wait for ros time service
+        pass
+
+    si = SensorInput()
+    po = PoseObserver()
+    dhe = DHestimator()
+    si.add_pose_observer(po)            # po subscribes to sensor updates
+
+    # each received frame triggers an observation
+
+    # destructive read from mesurements que to pass to processing
+    estimate_k, theta = dhe.process_measurement(po.measurements.deq()) 
+
+    
+    rospy.spin()

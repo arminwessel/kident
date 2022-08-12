@@ -4,13 +4,15 @@ Estimate the kinematic model error of a robot manipulator
 The model is based on the DH convention
 """ 
 # import statements
-from re import I
+import json
 import rospy
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import cv2
+from std_msgs.msg import String
 #from geometry_msgs.msg import Twist, Pose
-#from vservo.msg import  Point2DArray
+from kident.msg import Est, Meas
 #from std_msgs.msg import Float32
 #from std_srvs.srv import SetBool, SetBoolResponse
 #import utils
@@ -25,6 +27,20 @@ class DHestimator():
         """
         Constructor
         """
+
+        self.sub_meas = rospy.Subscriber("meas", Meas, self.process_measurement)
+        self.pub_est = rospy.Publisher("est", Est, queue_size=20)
+
+
+        self.rls=RLS(28,1) # estimate 28 params, forgetting factor none
+
+        # nominal DH parameters
+          # nominal theta parameters are joint coors
+        d_nom=np.array([0,0,0.42,0,0.4,0,0])
+        a_nom=np.array([0,0,0,0,0,0,0])
+        alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
+
+
     
     def get_T__i(self, theta__i, d__i, a__i, alpha__i) -> np.array:
         t1 = math.cos(theta__i)
@@ -82,6 +98,41 @@ class DHestimator():
         J[0:3,:]=np.concatenate((W7, W2, W3, W8), axis=1)
         J[3:6,:]=np.concatenate((W2, np.zeros((3,7)), np.zeros((3,7)), W3), axis=1)
         return J
+    
+
+    def process_measurement(self, m):
+        print("test")
+
+        # calculate the expected pose difference based on forward kinematics with nominal params
+        theta_nom1 = np.array(m.joints_neg).flatten()
+        theta_nom2 = np.array(m.joints_pos).flatten()
+        T_nom1 = self.get_T__i0(7,theta_nom1, self.d_nom, self.a_nom, self.alpha_nom)
+        T_nom2 = self.get_T__i0(7,theta_nom2, self.d_nom, self.a_nom, self.alpha_nom)
+        dtvec_nom = T_nom1[0:3,3].reshape((3,1)) - T_nom2[0:3,3].reshape((3,1))
+        drvec_nom = cv2.Rodrigues(T_nom1[0:3,0:3]) - cv2.Rodrigues(T_nom2[0:3,0:3])
+
+        # extract the measured pose differences
+        dtvec_real = m.dtvec
+        drvec_real = m.drvec
+
+        # calculate parameter jacobian for 0.5*((q+) + (q-))
+        jacobian = self.get_parameter_jacobian(0.5*(theta_nom1+theta_nom2), self.d_nom, self.a_nom, self.alpha_nom)
+
+        # calculate errors between expected and measured pose difference
+        dtvec_error = np.reshape(dtvec_real-dtvec_nom,(3,1))
+        drvec_error = np.reshape(drvec_real-drvec_nom,(3,1))
+        current_error=np.concatenate((dtvec_error, drvec_error),axis=0)
+
+  
+        # use RLS to improve estimate of parameters
+        self.rls.add_obs(S=jacobian, Y=current_error)
+        estimate_k = self.rls.get_estimate().flatten()
+
+        msg = Est()
+        msg.estimate = estimate_k
+        msg.joints = theta_nom1
+
+        self.pub_est(msg)
 
 
 class RLS(): 
@@ -161,3 +212,14 @@ class Kalman:
         TODO
         '''
         pass
+
+
+# Main function.
+if __name__ == "__main__":
+    rospy.init_node('dh_estimator')   # init ROS node
+    rospy.loginfo('#Node dh_estimator running#')
+    while not rospy.get_rostime():      # wait for ros time service
+        pass
+    dhe = DHestimator()          # create instance
+    print("instance created")
+    rospy.spin()
