@@ -36,9 +36,12 @@ class DHestimator():
 
         # nominal DH parameters
           # nominal theta parameters are joint coors
-        d_nom=np.array([0,0,0.42,0,0.4,0,0])
-        a_nom=np.array([0,0,0,0,0,0,0])
-        alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
+        self.d_nom=np.array([0,0,0.42,0,0.4,0,0])
+        self.a_nom=np.array([0,0,0,0,0,0,0])
+        self.alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
+
+        ##ERROR##
+        self.d_nom[3]=0.015
 
 
     
@@ -101,26 +104,24 @@ class DHestimator():
     
 
     def process_measurement(self, m):
-        print("test")
-
         # calculate the expected pose difference based on forward kinematics with nominal params
         theta_nom1 = np.array(m.joints_neg).flatten()
         theta_nom2 = np.array(m.joints_pos).flatten()
         T_nom1 = self.get_T__i0(7,theta_nom1, self.d_nom, self.a_nom, self.alpha_nom)
         T_nom2 = self.get_T__i0(7,theta_nom2, self.d_nom, self.a_nom, self.alpha_nom)
         dtvec_nom = T_nom1[0:3,3].reshape((3,1)) - T_nom2[0:3,3].reshape((3,1))
-        drvec_nom = cv2.Rodrigues(T_nom1[0:3,0:3]) - cv2.Rodrigues(T_nom2[0:3,0:3])
+        drvec_nom = cv2.Rodrigues(T_nom1[0:3,0:3])[0] - cv2.Rodrigues(T_nom2[0:3,0:3])[0]
 
         # extract the measured pose differences
-        dtvec_real = m.dtvec
-        drvec_real = m.drvec
+        dtvec_real = np.reshape(np.array(m.dtvec),(3,1))
+        drvec_real = np.reshape(np.array(m.drvec),(3,1))
 
         # calculate parameter jacobian for 0.5*((q+) + (q-))
         jacobian = self.get_parameter_jacobian(0.5*(theta_nom1+theta_nom2), self.d_nom, self.a_nom, self.alpha_nom)
 
         # calculate errors between expected and measured pose difference
-        dtvec_error = np.reshape(dtvec_real-dtvec_nom,(3,1))
-        drvec_error = np.reshape(drvec_real-drvec_nom,(3,1))
+        dtvec_error = dtvec_real-dtvec_nom
+        drvec_error = drvec_real-drvec_nom
         current_error=np.concatenate((dtvec_error, drvec_error),axis=0)
 
   
@@ -132,7 +133,7 @@ class DHestimator():
         msg.estimate = estimate_k
         msg.joints = theta_nom1
 
-        self.pub_est(msg)
+        self.pub_est.publish(msg)
 
 
 class RLS(): 
@@ -218,8 +219,9 @@ class Kalman:
 if __name__ == "__main__":
     rospy.init_node('dh_estimator')   # init ROS node
     rospy.loginfo('#Node dh_estimator running#')
+
     while not rospy.get_rostime():      # wait for ros time service
         pass
     dhe = DHestimator()          # create instance
-    print("instance created")
+
     rospy.spin()

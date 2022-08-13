@@ -58,7 +58,7 @@ class PoseObserver():
         if (tracked_ids==[]):
             return
         id = random.choice(tracked_ids)               # pick a random id
-        print("random id: {}".format(id))
+        # print("random id: {}".format(id))
         if (self.observed[id].size()<2):
             return
         obs1 = self.observed[id].deq()              # this observation is removed from queue
@@ -81,7 +81,6 @@ class PoseObserver():
         m.joints_pos = obs2["joints"]
 
         self.pub_meas.publish(m)
-        print("tryin")
         
     def unpackage_obs_msg(self, msg):
         obs = {}

@@ -11,6 +11,8 @@ import cv2
 import ros_numpy
 import json
 import pickle
+import arcpy
+from kident.srv import GetQ
 
 class SensorInput():
     """
@@ -30,6 +32,12 @@ class SensorInput():
         self.aruco_length = aruco_marker_length
         self.camera_matrix = camera_matrix
         self.camera_distortion = camera_distortion
+
+        self.netif_addr = '127.0.0.1'
+        # self.netif_addr = '192.168.1.3'
+        self.iiwa = arcpy.Robots.Iiwa(self.netif_addr)
+
+        self.get_q = rospy.ServiceProxy('get_q', GetQ)
         
 
 
@@ -39,6 +47,7 @@ class SensorInput():
         """
         cv_image = ros_numpy.numpify(image_message)
         joints = self.get_joint_coordinates()
+        print("joints: {}".format(joints))
         list_obs = self.get_observations(cv_image, rospy.get_time(), joints)
         for obs in list_obs:
             self.pub_obs.publish(self.package_obs_msg(obs))
@@ -60,10 +69,13 @@ class SensorInput():
     
     def get_joint_coordinates(self):
         """
-        TODO implement readout for joint coordinates
+        readout for joint coordinates
         """
-        q = [1,2,3,4,5,6,7]       # Dummy
-        return q
+        try:
+            return self.get_q()
+        except rospy.ServiceException as e:
+            print("Service call to get q failed: %s"%e)
+
     
     def package_obs_msg(self, obs):
         msg = Obs()
