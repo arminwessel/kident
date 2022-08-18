@@ -41,7 +41,7 @@ class DHestimator():
         self.alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
 
         ##ERROR##
-        self.d_nom[3]=0.015
+        self.d_nom[6]=0.08 # camera offset
 
 
     

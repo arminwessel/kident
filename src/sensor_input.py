@@ -13,6 +13,8 @@ import json
 import pickle
 import arcpy
 from kident.srv import GetQ
+import math
+import time
 
 class SensorInput():
     """
@@ -33,11 +35,6 @@ class SensorInput():
         self.camera_matrix = camera_matrix
         self.camera_distortion = camera_distortion
 
-        self.netif_addr = '127.0.0.1'
-        # self.netif_addr = '192.168.1.3'
-        self.iiwa = arcpy.Robots.Iiwa(self.netif_addr)
-
-        self.get_q = rospy.ServiceProxy('get_q', GetQ)
         
 
 
@@ -47,7 +44,9 @@ class SensorInput():
         """
         cv_image = ros_numpy.numpify(image_message)
         joints = self.get_joint_coordinates()
-        print("joints: {}".format(joints))
+        if (joints == None):
+            rospy.logwarn("Joint coordinate readout returned None")
+            return
         list_obs = self.get_observations(cv_image, rospy.get_time(), joints)
         for obs in list_obs:
             self.pub_obs.publish(self.package_obs_msg(obs))
@@ -58,34 +57,44 @@ class SensorInput():
         Use openCV to find ArUco markers, determine their pose and 
         """
         (corners, ids, rejected) = cv2.aruco.detectMarkers(frame, self.arucoDict)
-        rvecs, tvecs, _objPoints = cv2.aruco.estimatePoseSingleMarkers(corners, 
-            self.aruco_length, 
-            self.camera_matrix, 
-            self.camera_distortion)
+        try: 
+            rvecs, tvecs, _objPoints = cv2.aruco.estimatePoseSingleMarkers(corners, 
+                self.aruco_length, 
+                self.camera_matrix, 
+                self.camera_distortion)
 
-        overlay_frame = cv2.aruco.drawDetectedMarkers(frame, corners,ids)
-        self.pub_image_overlay.publish(ros_numpy.msgify(Image, overlay_frame.astype(np.uint8), encoding='rgb8')) # convert opencv image to ROS
-        return  [{"id":m[0][0], "rvec":m[1].flatten().tolist(), "tvec":m[2].flatten().tolist(), "tstamp":tstamp, "joints":joints} for m in zip(ids, rvecs, tvecs)]
+            overlay_frame = cv2.aruco.drawDetectedMarkers(frame, corners,ids)
+            self.pub_image_overlay.publish(ros_numpy.msgify(Image, overlay_frame.astype(np.uint8), encoding='rgb8')) # convert opencv image to ROS
+            
+            return  [{"id":m[0][0], "rvec":m[1].flatten().tolist(), "tvec":m[2].flatten().tolist(), "tstamp":tstamp, "joints":joints} for m in zip(ids, rvecs, tvecs)]
+        except Exception as e:
+            rospy.logwarn("Pose estimation failed")
+            return []
     
     def get_joint_coordinates(self):
         """
         readout for joint coordinates
         """
         try:
-            return self.get_q()
+            rospy.wait_for_service('get_q')
+            get_q = rospy.ServiceProxy('get_q', GetQ)
+            res=get_q()
+            return res.q
         except rospy.ServiceException as e:
             print("Service call to get q failed: %s"%e)
 
     
     def package_obs_msg(self, obs):
         msg = Obs()
-        msg.id = int(obs["id"])
-        msg.rvec = obs["rvec"]
-        msg.tvec = obs["tvec"]
-        msg.tstamp = obs["tstamp"]
-        msg.joints = obs["joints"]
+        try:
+            msg.id = int(obs["id"])
+            msg.rvec = obs["rvec"]
+            msg.tvec = obs["tvec"]
+            msg.tstamp = obs["tstamp"]
+            msg.joints = obs["joints"]
+        except:
+            rospy.logerr("could not package observation {} of type {}".format(obs, type(obs)))
         return msg
-        
 
 # Main function.
 if __name__ == "__main__":
