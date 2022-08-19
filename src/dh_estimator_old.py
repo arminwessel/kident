@@ -59,6 +59,7 @@ class DHestimator():
         T_jk = T^j_k
         """
         theta_all, d_all, a_all, alpha_all = theta_all.flatten(), d_all.flatten(), a_all.flatten(), alpha_all.flatten()
+        assert theta_all.size==7 and d_all.size==7 and a_all.size==7 and alpha_all.size==7, "DH param vector len"
         T=np.eye(4)
         for i in range(k+1, j+1, 1): # first i=k+1, last i=j
             T=np.matmul(T,self.get_T__i(theta_all[i-1], d_all[i-1], a_all[i-1], alpha_all[i-1]))
@@ -69,13 +70,10 @@ class DHestimator():
     
     
     def get_parameter_jacobian(self, theta_all, d_all, a_all, alpha_all) -> np.array:
-        """
-        Get parameter jacobian for a system with 8 degrees of freedom (7 Robot and 1 Camera Extrinsics)
-        """
         W1 = W2 = W3 = W4 = W7 = W8 = np.zeros((3,0))
-        T__8_0=self.get_T__i0(8, theta_all, d_all, a_all, alpha_all)
-        t__8_0=T__8_0[0:3,3]
-        for i in range(1,9): # i=1..8 for each joint plus camera extrinsic
+        T__7_0=self.get_T__i0(7, theta_all, d_all, a_all, alpha_all)
+        t__7_0=T__7_0[0:3,3]
+        for i in range(1,8): # i=1..7
             T__i_0=self.get_T__i0(i-1, theta_all, d_all, a_all, alpha_all)
             t__i_0=T__i_0[0:3,3]
             R__i_0=T__i_0[0:3,0:3]
@@ -95,14 +93,14 @@ class DHestimator():
             _w=np.reshape(np.cross(t__i_0,_t2.flatten()),(3,1))+np.matmul(R__i_0,m__3i)
             W4 = np.concatenate((W4,_w),axis=1)
 
-            _w = np.reshape(np.cross(_t1.flatten(),t__8_0),(3,1))+np.reshape(W1[:,-1],(3,1))
+            _w = np.reshape(np.cross(_t1.flatten(),t__7_0),(3,1))+np.reshape(W1[:,-1],(3,1))
             W7 = np.concatenate((W7,_w),axis=1)
 
-            _w=np.reshape(np.cross(_t2.flatten(),t__8_0),(3,1))+np.reshape(W4[:,-1],(3,1))
+            _w=np.reshape(np.cross(_t2.flatten(),t__7_0),(3,1))+np.reshape(W4[:,-1],(3,1))
             W8=np.concatenate((W8,_w),axis=1)
-        J = np.zeros((6,32))
+        J = np.zeros((6,28))
         J[0:3,:]=np.concatenate((W7, W2, W3, W8), axis=1)
-        J[3:6,:]=np.concatenate((W2, np.zeros((3,8)), np.zeros((3,8)), W3), axis=1)
+        J[3:6,:]=np.concatenate((W2, np.zeros((3,7)), np.zeros((3,7)), W3), axis=1)
         return J
     
 

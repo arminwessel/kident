@@ -62,63 +62,58 @@ class DataVisualizer():
             
 
     def plot_est(self, i=None):
+        num_total, len = np.shape(self.param_errors_list)
+        assert num_total%4==0, "number of DH params must be divisible by 4"
+        num = num_total//4
+
         X = range(len(self.param_errors_list[0,:]))
-        self.ax_est[0,0].clear()
-        self.ax_est[0,0].plot(X,self.param_errors_list[0,:].flatten(), color='tab:blue',   label='0')
-        self.ax_est[0,0].plot(X,self.param_errors_list[1,:].flatten(), color='tab:orange', label='1')
-        self.ax_est[0,0].plot(X,self.param_errors_list[2,:].flatten(), color='tab:green',  label='2')
-        self.ax_est[0,0].plot(X,self.param_errors_list[3,:].flatten(), color='tab:red',    label='3')
-        self.ax_est[0,0].plot(X,self.param_errors_list[4,:].flatten(), color='tab:purple', label='4')
-        self.ax_est[0,0].plot(X,self.param_errors_list[5,:].flatten(), color='tab:olive',  label='5')
-        self.ax_est[0,0].plot(X,self.param_errors_list[6,:].flatten(), color='tab:cyan',   label='6')
-        self.ax_est[0,0].set_title("d theta")
-        self.ax_est[0,0].legend()
 
-        self.ax_est[0,1].clear()
-        self.ax_est[0,1].plot(X,self.param_errors_list[7,:].flatten(), color='tab:blue',   label='0')
-        self.ax_est[0,1].plot(X,self.param_errors_list[8,:].flatten(), color='tab:orange', label='1')
-        self.ax_est[0,1].plot(X,self.param_errors_list[9,:].flatten(), color='tab:green',  label='2')
-        self.ax_est[0,1].plot(X,self.param_errors_list[10,:].flatten(), color='tab:red',    label='3')
-        self.ax_est[0,1].plot(X,self.param_errors_list[11,:].flatten(), color='tab:purple', label='4')
-        self.ax_est[0,1].plot(X,self.param_errors_list[12,:].flatten(), color='tab:olive',  label='5')
-        self.ax_est[0,1].plot(X,self.param_errors_list[13,:].flatten(), color='tab:cyan',   label='6')
-        self.ax_est[0,1].set_title("d d")
-        self.ax_est[0,1].legend()
+        colors = np.array([ 'tab:blue','tab:orange','tab:green',
+                            'tab:red', 'tab:purple','tab:olive',
+                            'tab:cyan','tab:pink',  'tab:brown','tab:gray'])
+        if (num>colors.size):
+            colors = np.random.choice(colors, size=(num,), replace=True, p=None)
 
-        self.ax_est[1,0].clear()
-        self.ax_est[1,0].plot(X,self.param_errors_list[14,:].flatten(), color='tab:blue',   label='0')
-        self.ax_est[1,0].plot(X,self.param_errors_list[15,:].flatten(), color='tab:orange', label='1')
-        self.ax_est[1,0].plot(X,self.param_errors_list[16,:].flatten(), color='tab:green',  label='2')
-        self.ax_est[1,0].plot(X,self.param_errors_list[17,:].flatten(), color='tab:red',    label='3')
-        self.ax_est[1,0].plot(X,self.param_errors_list[18,:].flatten(), color='tab:purple', label='4')
-        self.ax_est[1,0].plot(X,self.param_errors_list[19,:].flatten(), color='tab:olive',  label='5')
-        self.ax_est[1,0].plot(X,self.param_errors_list[20,:].flatten(), color='tab:cyan',   label='6')
-        self.ax_est[1,0].set_title("d a")
-        self.ax_est[1,0].legend()
+        axis=self.ax_est
 
-        self.ax_est[1,1].clear()
-        self.ax_est[1,1].plot(X,self.param_errors_list[21,:].flatten(), color='tab:blue',   label='0')
-        self.ax_est[1,1].plot(X,self.param_errors_list[22,:].flatten(), color='tab:orange', label='1')
-        self.ax_est[1,1].plot(X,self.param_errors_list[23,:].flatten(), color='tab:green',  label='2')
-        self.ax_est[1,1].plot(X,self.param_errors_list[24,:].flatten(), color='tab:red',    label='3')
-        self.ax_est[1,1].plot(X,self.param_errors_list[25,:].flatten(), color='tab:purple', label='4')
-        self.ax_est[1,1].plot(X,self.param_errors_list[26,:].flatten(), color='tab:olive',  label='5')
-        self.ax_est[1,1].plot(X,self.param_errors_list[27,:].flatten(), color='tab:cyan',   label='6')
-        self.ax_est[1,1].set_title("d alpha")
-        self.ax_est[1,1].legend()
+        axis[0,0].clear()
+        for i in range(num):
+            axis[0,0].plot(X,self.param_errors_list[i,:].flatten(), color=colors[i],   label=str(i))
+        axis[0,0].set_title(r'$\Delta$$\theta$')
+        axis[0,0].legend()
+
+        axis[0,1].clear()
+        for i in range(num):
+            axis[0,1].plot(X,self.param_errors_list[i+num,:].flatten(), color=colors[i],   label=str(i))
+        axis[0,1].set_title(r'$\Delta$d')
+        axis[0,1].legend()
+
+        axis[1,0].clear()
+        for i in range(num):
+            axis[1,0].plot(X,self.param_errors_list[i+2*num,:].flatten(), color=colors[i],   label=str(i))
+        axis[1,0].set_title(r'$\Delta$a')
+        axis[1,0].legend()
+
+        axis[1,1].clear()
+        for i in range(num):
+            axis[1,1].plot(X,self.param_errors_list[i+3*num,:].flatten(), color=colors[i],   label=str(i))
+        axis[1,1].set_title(r'$\Delta$$\alpha$')
+        axis[1,1].legend()
 
     def plot_traj(self, i=None):
+        num, len = np.shape(self.traj)
         X = range(len(self.param_errors_list[0,:]))
-        self.ax_traj.clear()
-        self.ax_traj.plot(X,self.traj[0,:].flatten(), color='tab:blue',   label='0')
-        self.ax_traj.plot(X,self.traj[1,:].flatten(), color='tab:orange', label='1')
-        self.ax_traj.plot(X,self.traj[2,:].flatten(), color='tab:green',  label='2')
-        self.ax_traj.plot(X,self.traj[3,:].flatten(), color='tab:red',    label='3')
-        self.ax_traj.plot(X,self.traj[4,:].flatten(), color='tab:purple', label='4')
-        self.ax_traj.plot(X,self.traj[5,:].flatten(), color='tab:olive',  label='5')
-        self.ax_traj.plot(X,self.traj[6,:].flatten(), color='tab:cyan',   label='6')
-        self.ax_traj.set_title("theta trajectories")
-        self.ax_traj.legend()
+        colors = np.array([ 'tab:blue','tab:orange','tab:green',
+                            'tab:red', 'tab:purple','tab:olive',
+                            'tab:cyan','tab:pink',  'tab:brown','tab:gray'])
+        if (num>colors.size):
+            colors = np.random.choice(colors, size=(num,), replace=True, p=None)
+        axis=self.ax_traj
+        axis.clear()
+        for i in range(num-1): # num - 1 is used to avoid plotting zero for camera intrinsics param theta
+            axis.plot(X,self.traj[i,:].flatten(), color=colors[i],   label=str(i))
+        axis.set_title(r'$\theta$ trajectories')
+        axis.legend()
 
     def plot_curr_est(self, i=None):
 
@@ -126,25 +121,53 @@ class DataVisualizer():
         X = [n for n in range(0,7)]
         Y = self.param_errors_list[0:7,self.k-1]
         self.ax_curr_est[0,0].stem(X,Y)
-        self.ax_curr_est[0,0].set_title("d theta")
+        self.ax_curr_est[0,0].set_title(r'$\Delta$$\theta$')
 
         self.ax_curr_est[0,1].clear()
         X = [n for n in range(7,14)]
         Y = self.param_errors_list[7:14,self.k-1]
         self.ax_curr_est[0,1].stem(X,Y)
-        self.ax_curr_est[0,1].set_title("d d ")
+        self.ax_curr_est[0,1].set_title(r'$\Delta$d')
 
         self.ax_curr_est[1,0].clear()
         X = [n for n in range(14,21)]
         Y = self.param_errors_list[14:21,self.k-1]
         self.ax_curr_est[1,0].stem(X,Y)
-        self.ax_curr_est[1,0].set_title("d a")
+        self.ax_curr_est[1,0].set_title(r'$\Delta$a')
 
         self.ax_curr_est[1,1].clear()
         X = [n for n in range(21,28)]
         Y = self.param_errors_list[21:28,self.k-1]
         self.ax_curr_est[1,1].stem(X,Y)
-        self.ax_curr_est[1,1].set_title("d alpha")
+        self.ax_curr_est[1,1].set_title(r'$\Delta$$\alpha$')
+
+    def plot_curr_est(self, i=None):
+        num_total, len = np.shape(self.param_errors_list)
+        assert num_total%4==0, "number of DH params must be divisible by 4"
+        num = num_total//4      # index is type integer
+
+        X = [n for n in range(0,num)]
+        axis=self.ax_curr_est
+
+        axis[0,0].clear()
+        Y = self.param_errors_list[0:num,len-1]
+        axis[0,0].stem(X,Y)
+        axis[0,0].set_title(r'$\Delta$$\theta$')
+
+        axis[0,1].clear()
+        Y = self.param_errors_list[num:2*num,-1]
+        axis[0,1].stem(X,Y)
+        axis[0,1].set_title(r'$\Delta$d')
+
+        axis[1,0].clear()
+        Y = self.param_errors_list[2*num:3*num,-1]
+        axis[1,0].stem(X,Y)
+        axis[1,0].set_title(r'$\Delta$a')
+
+        axis[1,1].clear()
+        Y = self.param_errors_list[3*num:4*num,-1]
+        axis[1,1].stem(X,Y)
+        axis[1,1].set_title(r'$\Delta$$\alpha$')
 
 
 
