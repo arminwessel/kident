@@ -32,46 +32,12 @@ class InputSimulator():
         self.a_nom=np.array([0,0,0,0,0,0,0])
         self.alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
 
-        self.d_real=self.d_nom + np.array([0,0,0,0.3,0,0,0.0]) # error on d3
+        self.d_real=self.d_nom + np.array([0,0,0,0.07,0,0,0.0]) # error on d3
         self.a_real=self.a_nom + np.array([0,0,0,0,0,0,0.0])
-        self.alpha_real=self.alpha_nom + np.array([0,0,0,0,0,0,0]) 
+        self.alpha_real=self.alpha_nom + np.array([0,0,0,0,0,0,0])
 
 
     
-    def get_parameter_jacobian(self, theta_all, d_all, a_all, alpha_all) -> np.array:
-        W1 = W2 = W3 = W4 = W7 = W8 = np.zeros((3,0))
-        T__7_0=self.get_T__i0(7, theta_all, d_all, a_all, alpha_all)
-        t__7_0=T__7_0[0:3,3]
-        for i in range(1,8): # i=1..7
-            T__i_0=self.get_T__i0(i-1, theta_all, d_all, a_all, alpha_all)
-            t__i_0=T__i_0[0:3,3]
-            R__i_0=T__i_0[0:3,0:3]
-            m__1i=np.array([[0],[0],[1]])
-            m__2i=np.array([[math.cos(theta_all[i-1])],[math.sin(theta_all[i-1])],[0]])
-            m__3i=np.array([[-d_all[i-1]*math.sin(theta_all[i-1])],[d_all[i-1]*math.cos(theta_all[i-1])],[0]])
-            _t1=np.matmul(R__i_0,m__1i)
-            _t2=np.matmul(R__i_0,m__2i)
-
-            _w=np.reshape(np.cross(t__i_0,_t1.flatten()),(3,1))
-            W1 = np.concatenate((W1,_w), axis=1)
-            
-            W2 = np.concatenate((W2,_t1), axis=1)
-
-            W3 = np.concatenate((W3,_t2), axis=1)
-
-            _w=np.reshape(np.cross(t__i_0,_t2.flatten()),(3,1))+np.matmul(R__i_0,m__3i)
-            W4 = np.concatenate((W4,_w),axis=1)
-
-            _w = np.reshape(np.cross(_t1.flatten(),t__7_0),(3,1))+np.reshape(W1[:,-1],(3,1))
-            W7 = np.concatenate((W7,_w),axis=1)
-
-            _w=np.reshape(np.cross(_t2.flatten(),t__7_0),(3,1))+np.reshape(W4[:,-1],(3,1))
-            W8=np.concatenate((W8,_w),axis=1)
-        J = np.zeros((6,28))
-        J[0:3,:]=np.concatenate((W7, W2, W3, W8), axis=1)
-        J[3:6,:]=np.concatenate((W2, np.zeros((3,7)), np.zeros((3,7)), W3), axis=1)
-        return J
-
     def get_T__i(self, theta__i, d__i, a__i, alpha__i) -> np.array:
         t1 = math.cos(theta__i)
         t2 = math.sin(theta__i)
@@ -106,7 +72,7 @@ class InputSimulator():
         real_pos1 = T_real[0:3,3].reshape((3,1))
         real_rot1 = T_real[0:3,0:3]
 
-        time.sleep(0.01)
+        time.sleep(0.001)
 
         m.t_pos = rospy.get_time()
         m.joints_pos = self.get_joint_coordinates()
@@ -146,5 +112,4 @@ if __name__ == "__main__":
     
     while not rospy.is_shutdown():
         ins.simulate_measurement()
-        print("test")
         time.sleep(0.1)

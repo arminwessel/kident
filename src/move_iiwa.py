@@ -29,6 +29,14 @@ class MoveIiwa():
         self.iiwa.move_jointspace(q1, t0, T_traj)
         time.sleep(T_traj)
         self.q = self.iiwa.model.get_q()
+
+    def move_normal(self, T_traj = 7):  
+        t0 = self.iiwa.get_time()
+        q1 = (np.array(self.q) + np.random.default_rng().normal(0, 0.1, (7,1)))
+        self.iiwa.move_jointspace(q1, t0, T_traj)
+        time.sleep(T_traj)
+        self.q = self.iiwa.model.get_q()
+    
     
     def move_linear(self, T_traj = 5):
         t0 = self.iiwa.get_time()
@@ -60,4 +68,4 @@ if __name__ == "__main__":
     mi = MoveIiwa()          # create instance
     
     while not rospy.is_shutdown():
-        mi.move_linear()
+        mi.move_normal()

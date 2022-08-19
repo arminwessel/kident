@@ -1,6 +1,7 @@
 <launch>
 <!--Arguments-->
   <!-- <arg name="argname" default="def_value" /> -->
+  <arg name="gui" default="false" />
 
 <!--Parameters-->
   <!--<rosparam command="load" file="$(find vservo)/config/camera_param.yaml" /> -->
@@ -16,7 +17,7 @@
   
 <!--Gazebo-->
   <include file="$(find arc_gazebo)/launch/KukaLbrIiwa/iiwa_armin.launch">
-    <arg name="gui" value="false" />
+    <arg name="gui" value="$(arg gui)" />
   </include>
   
 

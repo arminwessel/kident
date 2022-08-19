@@ -117,7 +117,11 @@ class DHestimator():
         drvec_real = np.reshape(np.array(m.drvec),(3,1))
 
         # calculate parameter jacobian for 0.5*((q+) + (q-))
-        jacobian = self.get_parameter_jacobian(0.5*(theta_nom1+theta_nom2), self.d_nom, self.a_nom, self.alpha_nom)
+        # jacobian = self.get_parameter_jacobian(0.5*(theta_nom1+theta_nom2), self.d_nom, self.a_nom, self.alpha_nom)
+
+        jacobian1 = self.get_parameter_jacobian(theta_nom1, self.d_nom, self.a_nom, self.alpha_nom)
+        jacobian2 = self.get_parameter_jacobian(theta_nom2, self.d_nom, self.a_nom, self.alpha_nom)
+        jacobian = jacobian1-jacobian2
 
         # calculate errors between expected and measured pose difference
         dtvec_error = dtvec_real-dtvec_nom
@@ -143,7 +147,7 @@ class RLS():
         q: forgetting factor, usually very close to 1.
         alpha: initial value on idagonal of P
         """
-        assert q <= 1 and q > 0.9, "q usually needs to be from ]0.9, 1]"
+        assert q <= 1 and q > 0.95, "q usually needs to be from ]0.95, 1]"
         self.q = q
 
         self.num_params = num_params
