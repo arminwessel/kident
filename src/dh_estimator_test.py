@@ -70,29 +70,32 @@ def plot_curr_est(param_errors_list, axis):
     axis[1,1].stem(X,Y)
     axis[1,1].set_title(r'$\Delta$$\alpha$')
 
-theta_nom=np.array([0,0,0,0,0,0,0,0])
-d_nom=np.array([0,0,0.42,0,0.4,0,0,0])
-a_nom=np.array([0,0,0,0,0,0,0,0])
-alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2, np.pi/2])
+theta_nom=np.array([0,0,0,0,0,0,0,0,0])
+d_nom=np.array([0,0,0.42,0,0.4,0,0,0,0])
+a_nom=np.array([0,0,0,0,0,0,0,0,0])
+alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2, np.pi/2,0])
 
-d_real=d_nom + np.array([0,0,0,0,0,0,0,0.05])
-a_real=a_nom + np.array([0,0,0,0,0,0,0,0])
-alpha_real=alpha_nom + np.array([0,0,0,0,0,0,0,0]) #0.0002
+assert theta_nom.size == d_nom.size == a_nom.size == alpha_nom.size, "All parameter vectors must have same length"
+num_links = theta_nom.size
+
+d_real=d_nom + np.array([0,0,0,0,0,0,0,0.05,0])
+a_real=a_nom + np.array([0,0,0,0,0,0,0,0,0])
+alpha_real=alpha_nom + np.array([0,0,0,0,0,0,0,0,0]) #0.0002
+
 
 end=200
 estimator=DHestimator()
-printvar=np.zeros((1,end))
-param_errors_list=np.zeros((32,end))
-jacobian=np.zeros((0,32))
+param_errors_list=np.zeros((4*num_links,end))
+jacobian=np.zeros((0,4*num_links))
 pos_error=np.zeros((0,1))
-traj=np.zeros((8,end))
+traj=np.zeros((num_links,end))
 
-rls=RLS(32,1)
+rls=RLS(4*num_links,1)
 
 for k in range(0,end):
     ######## trajectory:
-    theta_nom=theta_nom + np.concatenate((np.random.default_rng().normal(0, 0.01, (7,)),np.array([0])))
-    theta_real=theta_nom + np.array([0,0,0,0,0,0,0,0])
+    theta_nom=theta_nom + np.random.default_rng().normal(0, 0.01, (num_links,))
+    theta_real=theta_nom + np.array([0,0,0,0,0,0,0,0,0])
     traj[:,k] = np.transpose(theta_real)
 
    

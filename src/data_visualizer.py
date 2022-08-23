@@ -115,31 +115,6 @@ class DataVisualizer():
         axis.set_title(r'$\theta$ trajectories')
         axis.legend()
 
-    def plot_curr_est(self, i=None):
-
-        self.ax_curr_est[0,0].clear()
-        X = [n for n in range(0,7)]
-        Y = self.param_errors_list[0:7,self.k-1]
-        self.ax_curr_est[0,0].stem(X,Y)
-        self.ax_curr_est[0,0].set_title(r'$\Delta$$\theta$')
-
-        self.ax_curr_est[0,1].clear()
-        X = [n for n in range(7,14)]
-        Y = self.param_errors_list[7:14,self.k-1]
-        self.ax_curr_est[0,1].stem(X,Y)
-        self.ax_curr_est[0,1].set_title(r'$\Delta$d')
-
-        self.ax_curr_est[1,0].clear()
-        X = [n for n in range(14,21)]
-        Y = self.param_errors_list[14:21,self.k-1]
-        self.ax_curr_est[1,0].stem(X,Y)
-        self.ax_curr_est[1,0].set_title(r'$\Delta$a')
-
-        self.ax_curr_est[1,1].clear()
-        X = [n for n in range(21,28)]
-        Y = self.param_errors_list[21:28,self.k-1]
-        self.ax_curr_est[1,1].stem(X,Y)
-        self.ax_curr_est[1,1].set_title(r'$\Delta$$\alpha$')
 
     def plot_curr_est(self, i=None):
         num_total, len = np.shape(self.param_errors_list)
