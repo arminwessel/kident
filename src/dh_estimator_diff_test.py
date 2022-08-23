@@ -3,6 +3,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from dh_estimator import DHestimator,RLS
+import cv2
 
 def plot_param_errors(param_errors_list, axis):
     num_total, len = np.shape(param_errors_list)
@@ -78,9 +79,9 @@ alpha_nom=np.array([0,np.pi/2,-np.pi/2,np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
 assert theta_nom.size == d_nom.size == a_nom.size == alpha_nom.size, "All parameter vectors must have same length"
 num_links = theta_nom.size
 
-d_real=d_nom + np.array([0,0,0,0,0.01,0,0])
+d_real=d_nom + np.array([0,0,0,0,0,0,0])
 a_real=a_nom + np.array([0,0,0,0,0,0,0])
-alpha_real=alpha_nom + np.array([0,0,0,0,0,0,0])
+alpha_real=alpha_nom + np.array([0,0,0,0.00005,0,0,0])
 
 
 end=200
@@ -89,34 +90,54 @@ param_errors_list=np.zeros((4*num_links,end))
 jacobian=np.zeros((0,4*num_links))
 pos_error=np.zeros((0,1))
 traj=np.zeros((num_links,end))
+distances=np.zeros((0,))
 
 rls=RLS(4*num_links,1)
 
-for k in range(0,end):
-    ######## trajectory:
+for k in range(0,2*end):
+    # k
     theta_nom=theta_nom + np.random.default_rng().normal(0, 0.01, (num_links,))
     theta_real=theta_nom + np.array([0,0,0,0,0,0,0])
-    traj[:,k] = np.transpose(theta_real)
+    traj[:,k//2] = np.transpose(theta_real)
 
    
-    jacobian = estimator.get_parameter_jacobian(theta_nom, d_nom, a_nom, alpha_nom)
-    T_nom = estimator.get_T__i0(num_links,theta_nom, d_nom, a_nom, alpha_nom)
-    T_real = estimator.get_T__i0(num_links, theta_real, d_real, a_real, alpha_real)
-    nominal_pos = T_nom[0:3,3].reshape((3,1))
-    real_pos = T_real[0:3,3].reshape((3,1))
+    jacobian1 = estimator.get_parameter_jacobian(theta_nom, d_nom, a_nom, alpha_nom)
+    T_nom1 = estimator.get_T__i0(num_links,theta_nom, d_nom, a_nom, alpha_nom)
+    T_real1 = estimator.get_T__i0(num_links, theta_real, d_real, a_real, alpha_real)
+    nominal_pos1 = T_nom1[0:3,3].reshape((3,1))
+    real_pos1 = T_real1[0:3,3].reshape((3,1))
+    rvec1real = cv2.Rodrigues(T_real1[0:3,0:3])[0]
+    rvec1nom = cv2.Rodrigues(T_nom1[0:3,0:3])[0]
 
-    nom_rot=T_nom[0:3,0:3]
-    real_rot=T_real[0:3,0:3]
-    delta_x=0.5*(real_rot[2,1]-real_rot[1,2]-nom_rot[2,1]+nom_rot[1,2])
-    delta_y=0.5*(real_rot[0,2]-real_rot[2,0]-nom_rot[0,2]+nom_rot[2,0])
-    delta_z=0.5*(real_rot[1,0]-real_rot[0,1]-nom_rot[1,0]+nom_rot[0,1])
+    theta_nom=theta_nom + np.random.default_rng().normal(0, 0.09, (num_links,))
+    theta_real=theta_nom + np.array([0,0,0,0,0,0,0])
 
-    current_error=np.concatenate((real_pos-nominal_pos,np.reshape(np.array([delta_x,delta_y,delta_z]),(3,1))),axis=0)
+    try:
+        traj[:,k//2+1] = np.transpose(theta_real)
+    except:
+        pass
+    jacobian2 = estimator.get_parameter_jacobian(theta_nom, d_nom, a_nom, alpha_nom)
+    T_nom2 = estimator.get_T__i0(num_links,theta_nom, d_nom, a_nom, alpha_nom)
+    T_real2 = estimator.get_T__i0(num_links, theta_real, d_real, a_real, alpha_real)
+    nominal_pos2 = T_nom2[0:3,3].reshape((3,1))
+    real_pos2 = T_real2[0:3,3].reshape((3,1))
+    rvec2real = cv2.Rodrigues(T_real2[0:3,0:3])[0]
+    rvec2nom = cv2.Rodrigues(T_nom2[0:3,0:3])[0]
 
-  
+    # nominal difference:
+    dtvec_nom = nominal_pos1 - nominal_pos2
+    drvec_nom = rvec1nom - rvec2nom
+    # real difference:
+    dtvec_real = real_pos1 - real_pos2
+    drvec_real = rvec1real - rvec2real
+
+    distances = np.append(distances, np.linalg.norm(dtvec_nom))
+    
+    current_error=np.concatenate((dtvec_real-dtvec_nom,drvec_real-drvec_nom),axis=0)
+    jacobian = jacobian1-jacobian2
     # use RLS
     rls.add_obs(S=jacobian, Y=current_error)
-    param_errors_list[:,k] = rls.get_estimate().flatten()
+    param_errors_list[:,k//2] = rls.get_estimate().flatten()
 
 
 fig1, ax1 = plt.subplots(2, 2)
@@ -129,4 +150,5 @@ fig3, ax3 = plt.subplots(2, 2)
 plot_curr_est(param_errors_list=param_errors_list, axis=ax3)
 
 plt.show()
+avg_dist=np.mean(distances)
 print('fin')

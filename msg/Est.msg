@@ -1,2 +1,2 @@
-float64[28] estimate
-float64[7] joints
+float64[] estimate
+float64[] joints

@@ -28,14 +28,18 @@ class InputSimulator():
         """
         self.pub_meas = rospy.Publisher("meas", Meas, queue_size=20)
 
-        self.d_nom=np.array([0,0,0.42,0,0.4,0,0.08]) # d6 is 8cm because of camera
+        self.theta_nom=np.array([0,np.pi,np.pi,0,np.pi/2,0,np.pi/2])
+        self.d_nom=np.array([0.1525,0.2025,0.2325,0.1825,0.2175,0.1825,0.081])
         self.a_nom=np.array([0,0,0,0,0,0,0])
-        self.alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
+        self.alpha_nom=np.array([0,np.pi/2,-np.pi/2,np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
 
-        self.d_real=self.d_nom + np.array([0,0,0,0.07,0,0,0.0]) # error on d3
-        self.a_real=self.a_nom + np.array([0,0,0,0,0,0,0.0])
-        self.alpha_real=self.alpha_nom + np.array([0,0,0,0,0,0,0])
+        assert self.theta_nom.size == self.d_nom.size == self.a_nom.size == self.alpha_nom.size, "All parameter vectors must have same length"
+        self.num_links = self.theta_nom.size
 
+        self.theta_real=np.array([0,0,0,0,0,0,0])
+        self.d_real=self.d_nom + np.array([0,0,0,0,0,0,0])
+        self.a_real=self.a_nom + np.array([0,0,0,0,0,0,0])
+        self.alpha_real=self.alpha_nom + np.array([0,0,0,0,0,0,0]) 
 
     
     def get_T__i(self, theta__i, d__i, a__i, alpha__i) -> np.array:
@@ -51,7 +55,6 @@ class InputSimulator():
         T_jk = T^j_k
         """
         theta_all, d_all, a_all, alpha_all = theta_all.flatten(), d_all.flatten(), a_all.flatten(), alpha_all.flatten()
-        assert theta_all.size==7 and d_all.size==7 and a_all.size==7 and alpha_all.size==7, "DH param vector len"
         T=np.eye(4)
         for i in range(k+1, j+1, 1): # first i=k+1, last i=j
             T=np.matmul(T,self.get_T__i(theta_all[i-1], d_all[i-1], a_all[i-1], alpha_all[i-1]))
@@ -61,21 +64,25 @@ class InputSimulator():
         return self.get_T_jk(i,0,theta_all, d_all, a_all, alpha_all)
 
 
-    def simulate_measurement(self) -> None:
+    def simulate_measurement(self, time_delta=0.01) -> None:
         """
         simulates a measurement
         """
+        n=self.num_links
+        
         m = Meas()
         m.t_neg = rospy.get_time()
-        m.joints_neg = self.get_joint_coordinates()
+        m.joints_neg = self.theta_real
         T_real = self.get_T__i0(7, np.array(m.joints_neg), self.d_real, self.a_real, self.alpha_real)
         real_pos1 = T_real[0:3,3].reshape((3,1))
         real_rot1 = T_real[0:3,0:3]
 
-        time.sleep(0.001)
+        self.theta_nom=self.theta_nom + np.random.default_rng().normal(0, 0.01, (n,))
+        self.theta_real=self.theta_nom + np.array([0,0,0,0,0,0,0])
+        time.sleep(time_delta)
 
         m.t_pos = rospy.get_time()
-        m.joints_pos = self.get_joint_coordinates()
+        m.joints_pos = self.theta_real
         T_real = self.get_T__i0(7, np.array(m.joints_pos), self.d_real, self.a_real, self.alpha_real)
         real_pos2 = T_real[0:3,3].reshape((3,1))
         real_rot2 = T_real[0:3,0:3]

@@ -11,7 +11,7 @@
   <node name="move_iiwa_node" pkg="kident" type="move_iiwa.py" />
   <!--<node name="sensor_input_node" pkg="kident" type="sensor_input.py"/>-->
   <!--<node name="pose_observer_node" pkg="kident" type="pose_observer.py" />-->
-  <!--<node name="input_simulator_node" pkg="kident" type="input_simulator.py" />-->
+  <node name="input_simulator_node" pkg="kident" type="input_simulator.py" />
   <node name="dh_estimator_node" pkg="kident" type="dh_estimator.py" />
   <node name="data_visualizer_node" pkg="kident" type="data_visualizer.py" />
   

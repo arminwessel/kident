@@ -36,16 +36,17 @@ class DHestimator():
         self.pub_est = rospy.Publisher("est", Est, queue_size=20)
 
 
-        self.rls=RLS(28,1) # estimate 28 params, forgetting factor none
+        
 
         # nominal DH parameters
           # nominal theta parameters are joint coors
-        self.d_nom=np.array([0,0,0.42,0,0.4,0,0])
+        self.theta_nom=np.array([0,np.pi,np.pi,0,np.pi/2,0,np.pi/2])
+        self.d_nom=np.array([0.1525,0.2025,0.2325,0.1825,0.2175,0.1825,0.081])
         self.a_nom=np.array([0,0,0,0,0,0,0])
-        self.alpha_nom=np.array([0,np.pi/2,-np.pi/2,-np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
+        self.alpha_nom=np.array([0,np.pi/2,-np.pi/2,np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
 
-        ##ERROR##
-        self.d_nom[6]=0.08 # camera offset
+        num_links = self.theta_nom.size
+        self.rls=RLS(4*num_links,1) 
 
 
     
