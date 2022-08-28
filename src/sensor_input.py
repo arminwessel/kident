@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from typing import Collection
 import rospy
 import numpy as np
 from sensor_msgs.msg import Image
@@ -14,7 +15,8 @@ import pickle
 import arcpy
 from kident.srv import GetQ
 import math
-import time
+import timeit
+import scipy.signal
 
 class SensorInput():
     """
@@ -34,6 +36,14 @@ class SensorInput():
         self.aruco_length = aruco_marker_length
         self.camera_matrix = camera_matrix
         self.camera_distortion = camera_distortion
+        
+        #rospy.wait_for_service('get_q')
+        self.get_q = rospy.ServiceProxy('get_q', GetQ)
+        self.q_raw = []
+        self.q_filt = []
+        self.freq = 5 #Hz
+        sos = scipy.signal.iirfilter(10, Wn=0.01, fs=self.freq, btype="low", ftype="butter", output="sos")
+        self.joint_filter = OnlineJointFilter(sos, 7)
 
         
 
@@ -43,7 +53,7 @@ class SensorInput():
         Method executed for every frame: get marker observations and joint coordinates
         """
         cv_image = ros_numpy.numpify(image_message)
-        joints = self.get_joint_coordinates()
+        joints = self.q_filt
         if (joints == None):
             rospy.logwarn("Joint coordinate readout returned None")
             return
@@ -71,17 +81,27 @@ class SensorInput():
             rospy.logwarn("Pose estimation failed")
             return []
     
-    def get_joint_coordinates(self):
+    def processes(self):
         """
-        readout for joint coordinates
+        List of scheduled processes
         """
+        self.filter_joint_coordinates()
+
+    def filter_joint_coordinates(self):
+        """
+        readout for joint coordinates and apply filter
+        """
+        # readout
         try:
-            rospy.wait_for_service('get_q')
-            get_q = rospy.ServiceProxy('get_q', GetQ)
-            res=get_q()
-            return res.q
+            q_raw=self.get_q().q
+            self.q_raw = q_raw
         except rospy.ServiceException as e:
             print("Service call to get q failed: %s"%e)
+
+        # filtering
+        q_filt = self.joint_filter(q_raw)
+        self.q_filt = q_filt
+    
 
     
     def package_obs_msg(self, obs):
@@ -96,6 +116,49 @@ class SensorInput():
             rospy.logerr("could not package observation {} of type {}".format(obs, type(obs)))
         return msg
 
+class OnlineJointFilter():
+    # stolen from https://www.samproell.io/posts/yarppg/digital-filters-python/
+    def __init__(self, sos, num_joints):
+        """Initialize live second-order sections filter.
+
+        Args:
+            sos (array-like): second-order sections obtained from scipy
+                filter design (with output="sos").
+        """
+        self.sos = sos
+
+        self.n_sections = sos.shape[0]
+        self.states = np.zeros((self.n_sections, 2, num_joints))
+    
+    def __call__(self, qs):
+        return self.process(qs)
+
+    def process(self, qs):
+        qs_filt=[]
+        if not isinstance(qs, Collection):
+            qs=[qs]
+        else:
+            qs=list(qs)
+        for i,q in enumerate(qs):
+            q_filt = self.process_single(x=q, state=self.states[:,:,i])
+            qs_filt.append(q_filt)
+        return qs_filt
+
+    def process_single(self, x, state):
+        """Filter incoming data with cascaded second-order sections.
+        """
+        n_sections = self.n_sections
+        sos = self.sos
+        for s in range(n_sections):  # apply filter sections in sequence
+            b0, b1, b2, a0, a1, a2 = sos[s, :]
+
+            # compute difference equations of transposed direct form II
+            y = b0*x + state[s, 0]
+            state[s, 0] = b1*x - a1*y + state[s, 1]
+            state[s, 1] = b2*x - a2*y
+            x = y  # set biquad output as input of next filter section.
+        return y
+
 # Main function.
 if __name__ == "__main__":
     rospy.init_node('sensor_input')   # init ROS node named aruco_detector
@@ -104,6 +167,11 @@ if __name__ == "__main__":
     while not rospy.get_rostime():      # wait for ros time service
         pass
 
-    si = SensorInput()          # create instance
     
-    rospy.spin()
+    si = SensorInput()          # create instance
+    r = rospy.Rate(si.freq)
+    while not rospy.is_shutdown():
+        starttime = rospy.get_time()
+        si.processes()
+        r.sleep()
+        rospy.logwarn("Freq is {}".format(1/(rospy.get_time()-starttime)))
