@@ -124,7 +124,7 @@ class DataVisualizer():
         axis=self.ax_curr_est
 
         axis[0,0].clear()
-        Y = self.param_errors_list[0:n,len-1]
+        Y = self.param_errors_list[0:n,-1]
         axis[0,0].stem(X,Y)
         axis[0,0].set_title(r'$\Delta$$\theta$')
 
@@ -199,15 +199,12 @@ if __name__ == "__main__":
     dv = DataVisualizer(num_joints)          # create instance
     rospy.on_shutdown(dv.save_data_shutdown)
     
-    rate = rospy.Rate(30) # ROS Rate at ... Hz
+    rate = rospy.Rate(10) # ROS Rate at ... Hz
 
     
     
     while not rospy.is_shutdown():
-        try:
-            rate.sleep()
-        except:
-            pass
+        rate.sleep()
 
     
 

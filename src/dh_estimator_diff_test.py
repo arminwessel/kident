@@ -79,10 +79,11 @@ alpha_nom=np.array([0,np.pi/2,-np.pi/2,np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
 assert theta_nom.size == d_nom.size == a_nom.size == alpha_nom.size, "All parameter vectors must have same length"
 num_links = theta_nom.size
 
-d_real=d_nom + np.array([0,0,0,0,0,0,0])
-a_real=a_nom + np.array([0,0,0,0,0,0,0])
-alpha_real=alpha_nom + np.array([0,0,0,0.00005,0,0,0])
-
+# testerfahrungen
+d_real=d_nom + np.array([0,0,0,0,0,0,0]) # auf d0 und d1 scheint es sich nicht auszuwirken, rest getestet mit 0.05
+a_real=a_nom + np.array([0,0,0,0,0,0,0]) # mit 0.0002 funktionieren alle
+alpha_real=alpha_nom + np.array([0,0,0,0,0,0,0.002]) # 0.0002 fürhrt bei al0,al1,al2 zu etwa 0.00015, bei al3 führt 0.002 auf 0.001, 
+# al4 kommt mit 0.002 auf knapp 0.0008, al5 mit 0.002 auf 0.0015, al6 wia l4
 
 end=200
 estimator=DHestimator()

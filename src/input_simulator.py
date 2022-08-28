@@ -18,9 +18,6 @@ import time
 
 
 class InputSimulator():
-    """
-    Generate data pairs of joints state and pose error 
-    """
 
     def __init__(self) -> None:
         """
@@ -28,17 +25,18 @@ class InputSimulator():
         """
         self.pub_meas = rospy.Publisher("meas", Meas, queue_size=20)
 
-        self.theta_nom=np.array([0,np.pi,np.pi,0,np.pi/2,0,np.pi/2])
-        self.d_nom=np.array([0.1525,0.2025,0.2325,0.1825,0.2175,0.1825,0.081])
-        self.a_nom=np.array([0,0,0,0,0,0,0])
-        self.alpha_nom=np.array([0,np.pi/2,-np.pi/2,np.pi/2,np.pi/2,np.pi/2,-np.pi/2])
+        self.theta_nom =np.array([0,     0, 0,     0, 0,   0, 0    ])
+        self.a_nom     =np.array([0.355, 0, 0.415, 0, 0.4, 0, 0.236])
+        self.d_nom     =np.array([0,     0, 0,     0, 0,   0, 0    ])
+        pip2 = np.pi/2
+        self.alpha_nom =np.array([0, pip2, -pip2, -pip2, pip2, pip2, -pip2])
 
         assert self.theta_nom.size == self.d_nom.size == self.a_nom.size == self.alpha_nom.size, "All parameter vectors must have same length"
         self.num_links = self.theta_nom.size
 
-        self.theta_real=np.array([0,0,0,0,0,0,0])
-        self.d_real=self.d_nom + np.array([0,0,0,0,0,0,0])
-        self.a_real=self.a_nom + np.array([0,0,0,0,0,0,0])
+        self.theta_real=np.array([0,0,0,0,0,0,0.08])
+        self.d_real=self.d_nom + np.array([0,0,0,0,0.05,0,0])
+        self.a_real=self.a_nom + np.array([0,0,0,0,0,0,0.01])
         self.alpha_real=self.alpha_nom + np.array([0,0,0,0,0,0,0]) 
 
     
@@ -77,7 +75,7 @@ class InputSimulator():
         real_pos1 = T_real[0:3,3].reshape((3,1))
         real_rot1 = T_real[0:3,0:3]
 
-        self.theta_nom=self.theta_nom + np.random.default_rng().normal(0, 0.01, (n,))
+        self.theta_nom=self.theta_nom + np.random.default_rng().normal(0, 0.09, (n,))
         self.theta_real=self.theta_nom + np.array([0,0,0,0,0,0,0])
         time.sleep(time_delta)
 
@@ -87,23 +85,12 @@ class InputSimulator():
         real_pos2 = T_real[0:3,3].reshape((3,1))
         real_rot2 = T_real[0:3,0:3]
         
-        m.dtvec = real_pos2 - real_pos1
-        m.drvec = cv2.Rodrigues(real_rot2)[0] - cv2.Rodrigues(real_rot1)[0]
+        m.dtvec = real_pos1 - real_pos2
+        m.drvec = cv2.Rodrigues(real_rot1)[0] - cv2.Rodrigues(real_rot2)[0]
         m.id = 777
 
         self.pub_meas.publish(m)
-    
-    def get_joint_coordinates(self):
-        """
-        readout for joint coordinates
-        """
-        try:
-            rospy.wait_for_service('get_q')
-            get_q = rospy.ServiceProxy('get_q', GetQ)
-            res=get_q()
-            return res.q
-        except rospy.ServiceException as e:
-            print("Service call to get q failed: %s"%e)
+        
 
     
 

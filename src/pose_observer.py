@@ -71,6 +71,17 @@ class PoseObserver():
         dtvec = np.reshape(H1i[0:3,3]- H2i[0:3,3],(3,1))
         drvec = cv2.Rodrigues(H1i[0:3,0:3])[0] - cv2.Rodrigues(H2i[0:3,0:3])[0]
 
+
+        # sanity checks
+        dist_pos = np.linalg.norm(dtvec)
+        if dist_pos > 0.05:
+            rospy.logwarn("Distance in pose is greater than 5 cm: dist={} cm".format(100*dist_pos))
+            return
+        
+        dist_q = np.array(obs1["joints"])-np.array(obs2["joints"])
+        if np.any(dist_q > 0.01):
+            rospy.logwarn("Distance q greater than 0.01 rad: dist={} rad".format(dist_q))
+
         m = Meas()
         m.id = id
         m.drvec = drvec
